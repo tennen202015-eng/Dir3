@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -21,10 +22,6 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -44,22 +41,24 @@ fun ShieldApp(vm: ShieldViewModel) {
     }
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         MaterialTheme(colorScheme = colors) {
-            var tab by rememberSaveable { mutableIntStateOf(0) }
+            val tab = vm.tab
             Scaffold(
                 bottomBar = {
                     NavigationBar {
-                        NavigationBarItem(tab == 0, { tab = 0 }, { Icon(Icons.Filled.Home, null) }, label = { Text("الرئيسية") })
-                        NavigationBarItem(tab == 1, { tab = 1 }, { Icon(Icons.AutoMirrored.Filled.List, null) }, label = { Text("التطبيقات") })
-                        NavigationBarItem(tab == 2, { tab = 2 }, { Icon(Icons.Filled.Phone, null) }, label = { Text("الجهاز") })
-                        NavigationBarItem(tab == 3, { tab = 3 }, { Icon(Icons.Filled.Settings, null) }, label = { Text("الإعدادات") })
+                        NavigationBarItem(tab == 0, { vm.tab = 0 }, { Icon(Icons.Filled.Home, null) }, label = { Text("الرئيسية") })
+                        NavigationBarItem(tab == 1, { vm.tab = 1 }, { Icon(Icons.Filled.Search, null) }, label = { Text("الروابط") })
+                        NavigationBarItem(tab == 2, { vm.tab = 2 }, { Icon(Icons.AutoMirrored.Filled.List, null) }, label = { Text("التطبيقات") })
+                        NavigationBarItem(tab == 3, { vm.tab = 3 }, { Icon(Icons.Filled.Phone, null) }, label = { Text("الجهاز") })
+                        NavigationBarItem(tab == 4, { vm.tab = 4 }, { Icon(Icons.Filled.Settings, null) }, label = { Text("الإعدادات") })
                     }
                 },
             ) { pad ->
                 Box(Modifier.padding(pad).fillMaxSize()) {
                     when (tab) {
-                        0 -> HomeScreen(vm, openApps = { tab = 1 }, openDevice = { tab = 2 })
-                        1 -> AppsScreen(vm)
-                        2 -> DeviceScreen(vm)
+                        0 -> HomeScreen(vm, openApps = { vm.tab = 2 }, openDevice = { vm.tab = 3 })
+                        1 -> LinksScreen(vm)
+                        2 -> AppsScreen(vm)
+                        3 -> DeviceScreen(vm)
                         else -> SettingsScreen(vm)
                     }
                 }

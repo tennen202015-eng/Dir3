@@ -27,6 +27,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.duwaini.shield.ShieldViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun SettingsScreen(vm: ShieldViewModel) {
@@ -62,6 +65,24 @@ fun SettingsScreen(vm: ShieldViewModel) {
         }
 
         Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("قاعدة الفيروسات", fontWeight = FontWeight.Bold)
+                Text(
+                    if (vm.dbCount == 0) "لسه مفيش بصمات — هتتحدث تلقائياً أول ما تكون جاهزة"
+                    else "${vm.dbCount} بصمة فيروس أندرويد معروفة",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                if (vm.dbUpdated > 0) {
+                    Text(
+                        "آخر تحديث: " + SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.getDefault()).format(Date(vm.dbUpdated)),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                TextButton(onClick = { vm.updateDbNow() }) { Text("حدّثها دلوقتي") }
+            }
+        }
+
+        Card(Modifier.fillMaxWidth()) {
             Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("فحص تلقائي", fontWeight = FontWeight.Bold)
@@ -77,6 +98,8 @@ fun SettingsScreen(vm: ShieldViewModel) {
                 Text("التطبيق بيعمل إيه بالظبط؟", fontWeight = FontWeight.Bold)
                 listOf(
                     "يراجع كل تطبيق متثبت: جاي منين، وبيطلب صلاحيات إيه، وهل مستخبي أو ماسك الجهاز.",
+                    "يكشف التطبيقات والروابط اللي بتقلّد البنوك وأبشر وواتساب وغيرهم.",
+                    "يقارن التطبيقات اللي من برّه المتجر بقاعدة فيروسات بتتحدث كل يوم.",
                     "يبعت «بصمة» التطبيق بس (مش التطبيق نفسه ولا بياناتك) لـ VirusTotal.",
                     "يفحص إعدادات الجوال: القفل، التحديثات، خيارات المطور، الروت.",
                     "أندرويد مش بيسمح لأي تطبيق يدخل جوه بيانات التطبيقات التانية، فده بيكمّل Google Play Protect ومش بديل عنه.",

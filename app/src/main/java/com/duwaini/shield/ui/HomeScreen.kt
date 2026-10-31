@@ -114,6 +114,10 @@ private fun FileResultCard(r: FileScanResult, onClose: () -> Unit) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(r.name, fontWeight = FontWeight.Bold)
             r.apkLabel?.let { Text("تطبيق: $it") }
+            if (r.inMalwareDb) {
+                Text("⚠ الملف ده موجود في قاعدة بيانات الفيروسات — امسحه فوراً",
+                    color = DangerRed, fontWeight = FontWeight.Bold)
+            }
             when (val vt = r.vt) {
                 is VtResult.Found -> {
                     val bad = vt.malicious > 0

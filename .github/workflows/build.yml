@@ -2,6 +2,9 @@ name: Build APK
 
 on:
   push:
+    paths-ignore:
+      - "db/**"
+      - "README.md"
   workflow_dispatch:
 
 jobs:

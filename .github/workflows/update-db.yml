@@ -1,0 +1,38 @@
+name: Update malware DB
+
+on:
+  schedule:
+    - cron: "17 2 * * *"   # كل يوم الساعة 5:17 الصبح بتوقيت السعودية
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch Android malware hashes from MalwareBazaar
+        env:
+          KEY: ${{ secrets.ABUSECH_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "::warning::Add your free abuse.ch Auth-Key as repository secret ABUSECH_KEY"
+            exit 0
+          fi
+          q() { curl -sS -m 60 -X POST https://mb-api.abuse.ch/api/v1/ -H "Auth-Key: $KEY" -d "$1" -o "$2" || true; }
+          q "query=get_file_type&file_type=apk&limit=1000" r_apk.json
+          q "query=get_taginfo&tag=android&limit=1000"     r_android.json
+          q "query=get_taginfo&tag=apk&limit=1000"         r_tag_apk.json
+          python3 scripts/merge_hashes.py r_apk.json r_android.json r_tag_apk.json
+
+      - name: Commit if changed
+        run: |
+          if git diff --quiet db/; then echo "no changes"; exit 0; fi
+          git config user.name "dir3-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add db/
+          git commit -m "Update malware DB"
+          git push

@@ -1,0 +1,1 @@
+# Android malware SHA-256 hashes from MalwareBazaar (abuse.ch) — updated daily by .github/workflows/update-db.yml

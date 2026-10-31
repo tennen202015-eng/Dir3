@@ -25,6 +25,7 @@ data class AppReport(
     val vtMalicious: Int? = null,
     val vtTotal: Int? = null,
     val vtNote: String? = null,
+    val sha256: String? = null,
 ) {
     val level: RiskLevel
         get() = when {
@@ -48,7 +49,7 @@ object AppScanner {
         "com.bbk.appstore",
     )
 
-    fun scan(ctx: Context): List<AppReport> {
+    fun scan(ctx: Context, malwareDb: Set<String> = emptySet()): List<AppReport> {
         val pm = ctx.packageManager
         val cr = ctx.contentResolver
         val accessibility = splitServices(
@@ -69,12 +70,26 @@ object AppScanner {
             val installer = installerOf(pm, pkg)
             val trusted = installer != null && installer in TRUSTED_STORES
             val requested = (pi.requestedPermissions ?: emptyArray()).toSet()
+            val label = ai.loadLabel(pm).toString()
+            val apkPath = ai.sourceDir ?: ""
 
             var score = 0
             val reasons = mutableListOf<String>()
             fun add(points: Int, why: String) { score += points; reasons += why }
 
             if (!trusted) add(15, "متثبت من برّه المتجر الرسمي")
+
+            // بصمة التطبيقات اللي من برّه المتجر بس (تطبيقات المتجر بتاخد وقت ومتراجعة من جوجل)
+            val hash = if (!trusted && apkPath.isNotEmpty()) {
+                try { sha256(File(apkPath)) } catch (e: Exception) { null }
+            } else null
+            if (hash != null && hash in malwareDb) add(100, "⚠ موجود في قاعدة بيانات الفيروسات المعروفة")
+
+            if (!trusted) {
+                BrandGuard.impersonatedByApp(label, pkg)?.let {
+                    add(60, "اسمه بيقلّد «$it» بس مش جاي من المتجر الرسمي — غالباً مزيّف")
+                }
+            }
             if (pkg in accessibility) add(30, "شغّال كـ«خدمة إمكانية وصول» — يقدر يشوف الشاشة ويضغط بدالك")
             if (pkg in admins) add(25, "عنده صلاحية «مسؤول الجهاز» — ده بيصعّب مسحه")
             if (pkg in notifListeners) add(15, "يقرأ كل الإشعارات اللي بتوصلك")
@@ -90,8 +105,9 @@ object AppScanner {
 
             AppReport(
                 packageName = pkg,
-                label = ai.loadLabel(pm).toString(),
-                apkPath = ai.sourceDir ?: "",
+                label = label,
+                apkPath = apkPath,
+                sha256 = hash,
                 installer = installer,
                 fromTrustedStore = trusted,
                 score = score.coerceAtMost(100),
@@ -124,7 +140,7 @@ object AppScanner {
         return score to reasons
     }
 
-    /** يحلل ملف APK مش متثبت: يرجع (اسم التطبيق، الأسباب) أو null لو مش APK */
+    /** يحلل ملف APK مش متثبت: يرجع (اسم التطبيق، الأسباب) أو null لو مش APK (التقليد بيتحسب برّه) */
     fun analyzeArchive(ctx: Context, file: File): Pair<String, List<String>>? {
         val pm = ctx.packageManager
         val pi = archiveInfo(pm, file.absolutePath) ?: return null
@@ -134,7 +150,12 @@ object AppScanner {
             ai.publicSourceDir = file.absolutePath
             ai.loadLabel(pm).toString()
         } else pi.packageName
-        val (_, reasons) = permissionRisk((pi.requestedPermissions ?: emptyArray()).toSet())
+        val (_, permReasons) = permissionRisk((pi.requestedPermissions ?: emptyArray()).toSet())
+        val reasons = mutableListOf<String>()
+        BrandGuard.impersonatedByApp(label, pi.packageName)?.let {
+            reasons += "اسمه بيقلّد «$it» — التطبيقات الرسمية بتتنزل من المتجر بس"
+        }
+        reasons += permReasons
         return label to reasons
     }
 

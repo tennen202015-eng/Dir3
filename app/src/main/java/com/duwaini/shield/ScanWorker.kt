@@ -22,7 +22,8 @@ class ScanWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, 
     override suspend fun doWork(): Result {
         val ctx = applicationContext
         val prefs = Prefs(ctx)
-        val reports = try { AppScanner.scan(ctx) } catch (e: Exception) { return Result.retry() }
+        MalwareDb.updateIfNeeded(ctx)
+        val reports = try { AppScanner.scan(ctx, MalwareDb.hashes(ctx)) } catch (e: Exception) { return Result.retry() }
         val known = prefs.knownPackages
         val trusted = prefs.trusted
 

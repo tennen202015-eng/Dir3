@@ -12,10 +12,39 @@ sealed class VtResult {
 
 /** فحص البصمة (SHA-256) عند VirusTotal — أكتر من 70 برنامج حماية */
 object VirusTotal {
-    fun lookup(hash: String, apiKey: String): VtResult {
+    fun lookup(hash: String, apiKey: String): VtResult =
+        get("https://www.virustotal.com/api/v3/files/$hash", apiKey)
+
+    /** فحص رابط: لو VirusTotal ميعرفوش، بنبعتهوله يفحصه للمرة الجاية */
+    fun lookupUrl(url: String, apiKey: String): VtResult {
+        val id = android.util.Base64.encodeToString(
+            url.toByteArray(Charsets.UTF_8),
+            android.util.Base64.URL_SAFE or android.util.Base64.NO_PADDING or android.util.Base64.NO_WRAP,
+        )
+        val r = get("https://www.virustotal.com/api/v3/urls/$id", apiKey)
+        if (r is VtResult.NotFound) submitUrl(url, apiKey)
+        return r
+    }
+
+    private fun submitUrl(url: String, apiKey: String) {
+        try {
+            val c = URL("https://www.virustotal.com/api/v3/urls").openConnection() as HttpURLConnection
+            c.requestMethod = "POST"
+            c.doOutput = true
+            c.setRequestProperty("x-apikey", apiKey)
+            c.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
+            c.connectTimeout = 15000
+            c.readTimeout = 15000
+            c.outputStream.use { it.write(("url=" + java.net.URLEncoder.encode(url, "UTF-8")).toByteArray()) }
+            c.responseCode
+            c.disconnect()
+        } catch (e: Exception) { }
+    }
+
+    private fun get(endpoint: String, apiKey: String): VtResult {
         if (apiKey.isBlank()) return VtResult.Failed("ضيف مفتاح VirusTotal من الإعدادات", stop = true)
         return try {
-            val c = URL("https://www.virustotal.com/api/v3/files/$hash").openConnection() as HttpURLConnection
+            val c = URL(endpoint).openConnection() as HttpURLConnection
             c.setRequestProperty("x-apikey", apiKey)
             c.connectTimeout = 15000
             c.readTimeout = 15000
