@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="shield_green">#0F7B5A</color>
+    <color name="ic_bg">#0F7B5A</color>
+    <style name="Theme.Shield" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@color/shield_green</item>
+    </style>
+</resources>
